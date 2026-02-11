@@ -1,6 +1,29 @@
-
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
+
+interface AnimatedWordProps {
+  children: string;
+  progress: MotionValue<number>;
+  range: [number, number];
+}
+
+/**
+ * Individual Word component to handle scroll transformations.
+ * This ensures useTransform is called at the top level of a functional component.
+ */
+const AnimatedWord: React.FC<AnimatedWordProps> = ({ children, progress, range }) => {
+  const color = useTransform(progress, range, ["#333333", "#ffffff"]);
+  const opacity = useTransform(progress, range, [0.3, 1]);
+
+  return (
+    <motion.span
+      style={{ color, opacity }}
+      className="text-4xl md:text-7xl font-syne font-bold leading-[1.1] tracking-tight"
+    >
+      {children}
+    </motion.span>
+  );
+};
 
 const AboutSection: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,28 +53,14 @@ const AboutSection: React.FC = () => {
           {words.map((word, i) => {
             const start = i / words.length;
             const end = (i + 1) / words.length;
-            
-            // Map the scroll progress to each individual word's opacity/color
-            const color = useTransform(
-              scrollYProgress,
-              [start, end],
-              ["#333333", "#ffffff"]
-            );
-            
-            const opacity = useTransform(
-              scrollYProgress,
-              [start, end],
-              [0.3, 1]
-            );
-
             return (
-              <motion.span
-                key={i}
-                style={{ color, opacity }}
-                className="text-4xl md:text-7xl font-syne font-bold leading-[1.1] tracking-tight transition-colors duration-100"
+              <AnimatedWord 
+                key={`${word}-${i}`} 
+                progress={scrollYProgress} 
+                range={[start, end]}
               >
                 {word}
-              </motion.span>
+              </AnimatedWord>
             );
           })}
         </div>
