@@ -2,7 +2,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap-scrolltrigger';
+import { ScrollTrigger } from 'gsap_st';
 
 gsap.registerPlugin(ScrollTrigger);
 

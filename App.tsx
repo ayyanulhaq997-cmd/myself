@@ -3,7 +3,7 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap-scrolltrigger';
+import { ScrollTrigger } from 'gsap_st';
 import ParticlesBackground from './components/ParticlesBackground';
 import Hero from './components/Hero';
 import WorkCarousel from './components/WorkCarousel';
@@ -22,48 +22,45 @@ const App: React.FC = () => {
   useLayoutEffect(() => {
     // Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.5,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
-      infinite: false,
+      wheelMultiplier: 1.1,
     });
 
     // Update ScrollTrigger on Lenis scroll
     lenis.on('scroll', ScrollTrigger.update);
 
     // Add Lenis to GSAP ticker
-    gsap.ticker.add((time) => {
+    const gsapTickerFunc = (time: number) => {
       lenis.raf(time * 1000);
-    });
+    };
+    gsap.ticker.add(gsapTickerFunc);
 
     // Disable GSAP ticker lag smoothing for better sync
     gsap.ticker.lagSmoothing(0);
 
-    // Set initial scroll position to top
+    // Reset scroll memory and position
+    ScrollTrigger.clearScrollMemory();
     window.scrollTo(0, 0);
 
-    // Initial preloader
     const timer = setTimeout(() => {
       setIsLoading(false);
-      // Let the exit animation finish slightly before refreshing triggers
+      // Wait for exit animation, then refresh all triggers
       setTimeout(() => {
         ScrollTrigger.refresh();
-      }, 1200);
+      }, 1000);
     }, 2000);
 
     return () => {
       clearTimeout(timer);
       lenis.destroy();
-      gsap.ticker.remove(lenis.raf);
+      gsap.ticker.remove(gsapTickerFunc);
     };
   }, []);
 
   return (
-    <div className="relative text-white min-h-screen">
+    <div className="relative text-white min-h-screen selection:bg-blue-500 selection:text-white">
       <Cursor />
       <ParticlesBackground />
       
@@ -73,14 +70,14 @@ const App: React.FC = () => {
             key="loader"
             initial={{ opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
-            transition={{ duration: 1, ease: [0.76, 0, 0.24, 1] }}
+            transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
             className="fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center overflow-hidden pointer-events-auto"
           >
-            <div className="relative">
+            <div className="relative overflow-hidden">
               <motion.h2 
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8 }}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                 className="font-syne text-[10vw] font-black uppercase tracking-tighter"
               >
                 Aethelgard
@@ -88,7 +85,7 @@ const App: React.FC = () => {
               <motion.div 
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ duration: 1.5, ease: "circInOut" }}
+                transition={{ duration: 1.5, delay: 0.2, ease: "circInOut" }}
                 className="h-[2px] bg-blue-500 w-full mt-2 origin-left"
               />
             </div>
@@ -97,7 +94,7 @@ const App: React.FC = () => {
               transition={{ repeat: Infinity, duration: 2 }}
               className="font-syne text-[10px] uppercase tracking-[1em] text-white/40 mt-8"
             >
-              Initializing
+              Initializing Experience
             </motion.span>
           </motion.div>
         )}
@@ -165,7 +162,6 @@ const App: React.FC = () => {
         </footer>
       </main>
 
-      {/* Aesthetic Border Elements */}
       <div className="fixed inset-0 border-[20px] border-black z-[85] pointer-events-none hidden md:block" />
     </div>
   );
