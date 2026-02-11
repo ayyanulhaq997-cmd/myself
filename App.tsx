@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// Direct URL imports to bypass Vite/Rollup resolution issues
 import gsap from 'https://esm.sh/gsap@3.12.5';
 import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
 import Lenis from 'https://esm.sh/lenis@1.1.18';
@@ -15,50 +14,63 @@ import BentoSection from './components/BentoSection';
 import Cursor from './components/Cursor';
 import Magnetic from './components/Magnetic';
 
-// Register GSAP plugins
+// Globally register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useLayoutEffect(() => {
-    // Initialize Lenis Smooth Scroll
+    // 1. Initialize Lenis with high-inertia "luxury" settings
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1.1,
+      autoResize: true,
     });
 
-    // Sync ScrollTrigger with Lenis
+    // 2. Stop scroll initially for the preloader
+    lenis.stop();
+
+    // 3. Sync ScrollTrigger with Lenis updates
     lenis.on('scroll', ScrollTrigger.update);
 
-    // Optimized Raf Loop
-    const rafLoop = (time: number) => {
+    // 4. Use GSAP Ticker for frame-perfect RAF synchronization
+    // This is much more reliable than raw requestAnimationFrame in React
+    const update = (time: number) => {
       lenis.raf(time * 1000);
     };
-    gsap.ticker.add(rafLoop);
-
+    gsap.ticker.add(update);
     gsap.ticker.lagSmoothing(0);
 
-    // Initial preloader logic
+    // 5. Scroll Normalization (helps mobile/trackpad consistency)
+    ScrollTrigger.normalizeScroll(true);
+
+    // 6. Preloader Sequence
     const timer = setTimeout(() => {
       setIsLoading(false);
-      // Ensure page is scrollable and triggers are calculated
+      
+      // Delay enabling scroll until transition is halfway done
       setTimeout(() => {
+        lenis.start();
         ScrollTrigger.refresh();
-      }, 500);
-    }, 2000);
+        // Force a recalculation of page bounds
+        window.dispatchEvent(new Event('resize'));
+      }, 1000);
+    }, 2500);
 
     return () => {
       clearTimeout(timer);
       lenis.destroy();
-      gsap.ticker.remove(rafLoop);
+      gsap.ticker.remove(update);
     };
   }, []);
 
   return (
-    <div className="relative text-white min-h-screen selection:bg-blue-500 selection:text-white">
+    <div className="relative text-white min-h-screen bg-[#050505] selection:bg-blue-500">
       <Cursor />
       <ParticlesBackground />
       
@@ -68,55 +80,53 @@ const App: React.FC = () => {
             key="loader"
             initial={{ opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
-            transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-            className="fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center overflow-hidden pointer-events-auto"
+            transition={{ duration: 1.2, ease: [0.85, 0, 0.15, 1] }}
+            className="fixed inset-0 z-[1000] bg-[#050505] flex flex-col items-center justify-center overflow-hidden pointer-events-auto"
           >
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden px-10">
               <motion.h2 
-                initial={{ y: "100%" }}
+                initial={{ y: "110%" }}
                 animate={{ y: 0 }}
                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="font-syne text-[10vw] font-black uppercase tracking-tighter"
+                className="font-syne text-[12vw] font-black uppercase tracking-tighter leading-none"
               >
                 Aethelgard
               </motion.h2>
               <motion.div 
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ duration: 1.5, delay: 0.2, ease: "circInOut" }}
-                className="h-[2px] bg-blue-500 w-full mt-2 origin-left"
+                transition={{ duration: 1.5, delay: 0.2, ease: [0.85, 0, 0.15, 1] }}
+                className="h-[1px] bg-white w-full mt-4 origin-left opacity-30"
               />
             </div>
-            <motion.span 
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="font-syne text-[10px] uppercase tracking-[1em] text-white/40 mt-8"
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="absolute bottom-20 font-syne text-[10px] uppercase tracking-[1.5em] text-white/30"
             >
-              Building Reality
-            </motion.span>
+              Building the Future
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <nav className="fixed top-0 left-0 w-full p-10 md:p-16 flex justify-between items-center z-[90] mix-blend-difference">
-        <Magnetic strength={0.2}>
-          <div className="font-syne font-black text-3xl tracking-tighter cursor-none group interactive">
-            A<span className="text-blue-500">/</span>G
+      <nav className="fixed top-0 left-0 w-full p-10 md:p-14 flex justify-between items-start z-[90] mix-blend-difference pointer-events-none">
+        <Magnetic strength={0.3}>
+          <div className="font-syne font-black text-4xl tracking-tighter cursor-none group interactive pointer-events-auto">
+            A<span className="text-blue-500">.</span>G
           </div>
         </Magnetic>
         
-        <div className="flex gap-12 text-[10px] uppercase font-bold tracking-[0.4em]">
+        <div className="flex flex-col gap-6 text-[10px] uppercase font-bold tracking-[0.6em] items-end pointer-events-auto">
           {["Work", "About", "Studio"].map((item) => (
-            <Magnetic key={item} strength={0.3}>
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="cursor-none transition-transform interactive group"
-              >
+            <Magnetic key={item} strength={0.2}>
+              <motion.div className="cursor-none interactive group py-1">
                 <div className="relative overflow-hidden h-4">
-                  <div className="group-hover:-translate-y-full transition-transform duration-500 ease-[0.76, 0, 0.24, 1]">
+                  <div className="group-hover:-translate-y-full transition-transform duration-700 ease-[0.16, 1, 0.3, 1]">
                     {item}
                   </div>
-                  <div className="absolute top-0 left-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[0.76, 0, 0.24, 1] text-blue-400">
+                  <div className="absolute top-0 left-0 translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-[0.16, 1, 0.3, 1] text-blue-500">
                     {item}
                   </div>
                 </div>
@@ -126,6 +136,7 @@ const App: React.FC = () => {
         </div>
       </nav>
 
+      {/* Main content wrapper */}
       <main id="main-content" className="relative z-10 w-full">
         <Hero />
         <AboutSection />
@@ -133,34 +144,29 @@ const App: React.FC = () => {
         <SkillsCloud />
         <BentoSection />
         
-        <footer className="py-32 px-10 md:px-24 border-t border-white/5 bg-black flex flex-col gap-20">
+        <footer className="py-40 px-10 md:px-24 border-t border-white/5 bg-black flex flex-col gap-20">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12">
-            <h2 className="text-[12vw] font-syne font-black tracking-tighter leading-none text-white/10 uppercase">Let's Create.</h2>
+            <h2 className="text-[14vw] font-syne font-black tracking-tighter leading-[0.8] text-white/10 uppercase">World<br/>Class.</h2>
             <div className="flex flex-col gap-8 md:items-end">
               <Magnetic strength={0.4}>
-                <button className="bg-white text-black px-12 py-6 rounded-full font-bold uppercase tracking-widest text-xs interactive transition-transform hover:scale-110 active:scale-95">
-                  Start a Project
+                <button className="bg-white text-black px-16 py-8 rounded-full font-bold uppercase tracking-widest text-[10px] interactive transition-all hover:bg-blue-500 hover:text-white">
+                  Get in Touch
                 </button>
               </Magnetic>
-              <div className="text-gray-500 space-y-2 uppercase text-[10px] tracking-widest text-right">
-                <p>Tokyo, Japan</p>
-                <p>contact@aethelgard.io</p>
-              </div>
             </div>
           </div>
-          
-          <div className="flex flex-col md:flex-row justify-between items-center pt-20 border-t border-white/10 text-gray-600 text-[10px] uppercase tracking-[0.5em]">
-            <div>© 2025 Aethelgard Studio</div>
-            <div className="flex gap-12 mt-6 md:mt-0">
-              <span className="hover:text-white cursor-none interactive">Twitter</span>
-              <span className="hover:text-white cursor-none interactive">LinkedIn</span>
-              <span className="hover:text-white cursor-none interactive">Behance</span>
+          <div className="flex justify-between items-center pt-20 border-t border-white/5 text-gray-600 text-[9px] uppercase tracking-[0.6em]">
+            <div>© 2025 Aethelgard Studio / Japan</div>
+            <div className="flex gap-12">
+              <span className="hover:text-white cursor-none interactive transition-colors">TW</span>
+              <span className="hover:text-white cursor-none interactive transition-colors">LI</span>
+              <span className="hover:text-white cursor-none interactive transition-colors">BE</span>
             </div>
           </div>
         </footer>
       </main>
 
-      <div className="fixed inset-0 border-[20px] border-black z-[85] pointer-events-none hidden md:block" />
+      <div className="fixed inset-0 border-[1px] border-white/5 z-[85] pointer-events-none" />
     </div>
   );
 };

@@ -6,8 +6,11 @@ const Cursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverType, setHoverType] = useState<string | null>(null);
 
-  const mouseX = useSpring(0, { stiffness: 500, damping: 28, mass: 0.5 });
-  const mouseY = useSpring(0, { stiffness: 500, damping: 28, mass: 0.5 });
+  // Different physics for a "lagging" organic follower effect
+  const mouseX = useSpring(0, { stiffness: 400, damping: 35, mass: 0.5 });
+  const mouseY = useSpring(0, { stiffness: 400, damping: 35, mass: 0.5 });
+  
+  const cursorSize = useSpring(16, { stiffness: 300, damping: 20 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -23,12 +26,15 @@ const Cursor: React.FC = () => {
       if (isInteractive) {
         setIsHovering(true);
         setHoverType('link');
+        cursorSize.set(80);
       } else if (isProject) {
         setIsHovering(true);
         setHoverType('project');
+        cursorSize.set(100);
       } else {
         setIsHovering(false);
         setHoverType(null);
+        cursorSize.set(16);
       }
     };
 
@@ -38,33 +44,44 @@ const Cursor: React.FC = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseover', handleMouseOver);
     };
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, cursorSize]);
 
   return (
     <motion.div
-      className="fixed top-0 left-0 z-[9999] pointer-events-none flex items-center justify-center"
+      className="fixed top-0 left-0 z-[10000] pointer-events-none flex items-center justify-center mix-blend-difference"
       style={{
         x: mouseX,
         y: mouseY,
         translateX: '-50%',
-        translateY: '-50%'
+        translateY: '-50%',
+        width: cursorSize,
+        height: cursorSize,
       }}
     >
       <motion.div
+        className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden"
         animate={{
-          scale: isHovering ? (hoverType === 'project' ? 4 : 2.5) : 1,
-          backgroundColor: isHovering ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,1)',
+          borderRadius: hoverType === 'project' ? '12px' : '9999px'
         }}
-        className="w-4 h-4 rounded-full mix-blend-difference"
-      />
-      {hoverType === 'project' && (
-        <motion.span 
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute text-[4px] font-bold uppercase tracking-widest text-black"
-        >
-          View
-        </motion.span>
+      >
+        {hoverType === 'project' && (
+          <motion.span 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-[8px] font-black uppercase tracking-[0.4em] text-black"
+          >
+            View
+          </motion.span>
+        )}
+      </motion.div>
+      
+      {/* Trailing secondary ring for depth */}
+      {!isHovering && (
+        <motion.div 
+          className="absolute w-full h-full border border-white/20 rounded-full"
+          animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        />
       )}
     </motion.div>
   );
