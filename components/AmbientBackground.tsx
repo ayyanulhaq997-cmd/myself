@@ -1,7 +1,11 @@
 
 import React, { useEffect, useRef } from 'react';
 
-const AmbientBackground: React.FC = () => {
+interface AmbientBackgroundProps {
+  isCharging?: boolean;
+}
+
+const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ isCharging }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -26,9 +30,8 @@ const AmbientBackground: React.FC = () => {
     };
 
     const draw = () => {
-      time += 0.005;
+      time += isCharging ? 0.02 : 0.005; // Speed up when charging
       
-      // Smoothly interpolate position
       inputPos.x += (targetPos.x - inputPos.x) * 0.05;
       inputPos.y += (targetPos.y - inputPos.y) * 0.05;
 
@@ -44,30 +47,33 @@ const AmbientBackground: React.FC = () => {
 
       ctx.globalCompositeOperation = 'screen';
 
-      // Aurora 1 - Deep Blue
+      const blueColor = isCharging ? 'rgba(255, 30, 30, 0.2)' : 'rgba(20, 30, 100, 0.15)';
+      const purpleColor = isCharging ? 'rgba(100, 0, 0, 0.15)' : 'rgba(50, 20, 120, 0.1)';
+
+      // Aurora 1
       drawBlob(
         width * (0.5 + Math.sin(time) * 0.2 + (inputPos.x - 0.5) * 0.1),
         height * (0.5 + Math.cos(time * 0.8) * 0.2 + (inputPos.y - 0.5) * 0.1),
         width * 0.8,
-        'rgba(20, 30, 100, 0.15)',
+        blueColor,
         'rgba(0, 0, 0, 0)'
       );
 
-      // Aurora 2 - Indigo/Purple
+      // Aurora 2
       drawBlob(
         width * (0.3 + Math.cos(time * 1.2) * 0.2),
         height * (0.7 + Math.sin(time * 0.5) * 0.2),
         width * 0.6,
-        'rgba(50, 20, 120, 0.1)',
+        purpleColor,
         'rgba(0, 0, 0, 0)'
       );
 
-      // Aurora 3 - Cyan highlight near input
+      // Aurora 3
       drawBlob(
         width * inputPos.x,
         height * inputPos.y,
-        width * 0.4,
-        'rgba(59, 130, 246, 0.08)',
+        width * (isCharging ? 0.8 : 0.4),
+        isCharging ? 'rgba(255, 255, 255, 0.15)' : 'rgba(59, 130, 246, 0.08)',
         'rgba(0, 0, 0, 0)'
       );
 
@@ -82,8 +88,6 @@ const AmbientBackground: React.FC = () => {
 
     const handleDeviceMotion = (e: DeviceOrientationEvent) => {
       if (e.beta !== null && e.gamma !== null) {
-        // gamma is left to right tilt in degrees [-90, 90]
-        // beta is front to back tilt in degrees [-180, 180]
         targetPos.x = (e.gamma + 90) / 180;
         targetPos.y = (e.beta + 180) / 360;
       }
@@ -101,7 +105,7 @@ const AmbientBackground: React.FC = () => {
       window.removeEventListener('deviceorientation', handleDeviceMotion);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [isCharging]);
 
   return (
     <canvas 

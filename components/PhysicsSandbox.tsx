@@ -10,7 +10,6 @@ interface PhysicsSandboxProps {
 const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
-  const renderRef = useRef<Matter.Render | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   const itemsRef = useRef<{ element: HTMLElement; body: Matter.Body }[]>([]);
 
@@ -22,15 +21,14 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
     engineRef.current = engine;
     
     // 2. Query elements to "crush"
-    // We target projects, bento items, headers, and skills
-    const selectors = '.project-card, .glass, h1, h2, .hero-letter, [role="button"]';
+    const selectors = '.project-card, .glass, h1, h2, .hero-letter, [role="button"], button, .skill-tag';
     const elements = Array.from(document.querySelectorAll(selectors)) as HTMLElement[];
     
     const bodies: { element: HTMLElement; body: Matter.Body }[] = [];
     
     elements.forEach((el, i) => {
       const rect = el.getBoundingClientRect();
-      if (rect.width < 10 || rect.height < 10) return;
+      if (rect.width < 5 || rect.height < 5) return;
 
       // Create a body for each element
       const body = Matter.Bodies.rectangle(
@@ -39,9 +37,9 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
         rect.width,
         rect.height,
         {
-          restitution: 0.6,
+          restitution: 0.5,
           friction: 0.1,
-          chamfer: { radius: 10 },
+          chamfer: { radius: 8 },
           label: `item-${i}`
         }
       );
@@ -50,6 +48,7 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
       el.dataset.originalTransform = el.style.transform;
       el.dataset.originalPosition = el.style.position;
       el.dataset.originalZIndex = el.style.zIndex;
+      el.dataset.originalOpacity = el.style.opacity;
 
       // Prepare element for physics
       el.style.position = 'fixed';
@@ -57,8 +56,8 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
       el.style.left = '0';
       el.style.width = `${rect.width}px`;
       el.style.height = `${rect.height}px`;
-      el.style.zIndex = '9999';
-      el.style.pointerEvents = 'none'; // Physics engine handles mouse via constraint
+      el.style.zIndex = '15000';
+      el.style.pointerEvents = 'none'; 
       el.style.margin = '0';
 
       bodies.push({ element: el, body });
@@ -67,7 +66,7 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
     itemsRef.current = bodies;
     Matter.World.add(engine.world, bodies.map(b => b.body));
 
-    // 3. Add Boundaries (Floor, Walls)
+    // 3. Add Boundaries
     const floor = Matter.Bodies.rectangle(
       window.innerWidth / 2,
       window.innerHeight + 50,
@@ -96,18 +95,20 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
     runnerRef.current = runner;
     Matter.Runner.run(runner, engine);
 
-    // 6. Update Loop (Synchronize DOM with Physics)
+    // 6. Update Loop
+    let animFrame: number;
     const update = () => {
       itemsRef.current.forEach(({ element, body }) => {
         const { x, y } = body.position;
         const angle = body.angle;
         element.style.transform = `translate(${x - element.offsetWidth / 2}px, ${y - element.offsetHeight / 2}px) rotate(${angle}rad)`;
       });
-      if (isActive) requestAnimationFrame(update);
+      animFrame = requestAnimationFrame(update);
     };
     update();
 
     return () => {
+      cancelAnimationFrame(animFrame);
       if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
       if (engineRef.current) Matter.World.clear(engineRef.current.world, false);
       
@@ -116,6 +117,7 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
         element.style.position = element.dataset.originalPosition || '';
         element.style.transform = element.dataset.originalTransform || '';
         element.style.zIndex = element.dataset.originalZIndex || '';
+        element.style.opacity = element.dataset.originalOpacity || '';
         element.style.pointerEvents = '';
         element.style.top = '';
         element.style.left = '';
@@ -126,18 +128,23 @@ const PhysicsSandbox: React.FC<PhysicsSandboxProps> = ({ isActive, onReset }) =>
   if (!isActive) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] pointer-events-none">
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+    <div className="fixed inset-0 z-[20000] pointer-events-none">
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-4">
         <button 
-          onClick={onReset}
-          className="glass px-8 py-4 rounded-full font-syne font-black uppercase tracking-[0.3em] text-[10px] hover:bg-white hover:text-black transition-all duration-500 border border-white/20"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReset();
+          }}
+          className="bg-white text-black px-12 py-6 rounded-full font-syne font-black uppercase tracking-[0.4em] text-xs hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_50px_rgba(255,255,255,0.3)]"
         >
           Restore Reality
         </button>
+        <span className="text-[8px] uppercase tracking-[0.5em] text-white/40">Press ESC to reset instantly</span>
       </div>
       
-      {/* Visual Glitch Overlay */}
-      <div className="absolute inset-0 bg-blue-500/5 mix-blend-overlay pointer-events-none animate-pulse" />
+      {/* Visual Distortion Overlay */}
+      <div className="absolute inset-0 bg-blue-500/10 mix-blend-color pointer-events-none" />
+      <div className="absolute inset-0 border-[20px] border-white/10 pointer-events-none" />
     </div>
   );
 };

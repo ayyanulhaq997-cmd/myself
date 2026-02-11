@@ -1,8 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { motion, useSpring } from 'framer-motion';
+import { motion, useSpring, AnimatePresence } from 'framer-motion';
 
-const Cursor: React.FC = () => {
+interface CursorProps {
+  holdProgress?: number;
+}
+
+const Cursor: React.FC<CursorProps> = ({ holdProgress = 0 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverType, setHoverType] = useState<string | null>(null);
 
@@ -53,15 +57,41 @@ const Cursor: React.FC = () => {
         y: mouseY,
         translateX: '-50%',
         translateY: '-50%',
-        width: cursorSize,
-        height: cursorSize,
+        width: holdProgress > 0 ? 100 : cursorSize,
+        height: holdProgress > 0 ? 100 : cursorSize,
       }}
     >
       <motion.div
-        className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden"
+        className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden relative"
       >
+        {/* Hold Progress Ring */}
+        {holdProgress > 0 && (
+          <svg className="absolute inset-0 w-full h-full -rotate-90">
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke="black"
+              strokeWidth="4"
+              strokeDasharray="300"
+              strokeDashoffset={300 - (holdProgress * 300)}
+              className="transition-all duration-75"
+            />
+          </svg>
+        )}
+
         <AnimatePresence mode="wait">
-          {hoverType === 'project' && (
+          {holdProgress > 0 ? (
+            <motion.span 
+              key="charging"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-[8px] font-black uppercase text-black"
+            >
+              CHARGING
+            </motion.span>
+          ) : hoverType === 'project' && (
             <motion.span 
               key="view"
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -79,15 +109,12 @@ const Cursor: React.FC = () => {
       <motion.div 
         className="absolute inset-[-12px] border border-white/5 rounded-full"
         animate={{ 
-          scale: isHovering ? 1.1 : 1,
-          opacity: isHovering ? 0.3 : 0.05 
+          scale: (isHovering || holdProgress > 0) ? 1.2 : 1,
+          opacity: (isHovering || holdProgress > 0) ? 0.3 : 0.05 
         }}
       />
     </motion.div>
   );
 };
-
-// Internal Import for Cursor
-import { AnimatePresence } from 'framer-motion';
 
 export default Cursor;

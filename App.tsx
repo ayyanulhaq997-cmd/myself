@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isGravityCrushed, setIsGravityCrushed] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [showFlash, setShowFlash] = useState(false);
   
   const mainRef = useRef<HTMLDivElement>(null);
   const holdTimerRef = useRef<number | null>(null);
@@ -82,52 +83,109 @@ const App: React.FC = () => {
     };
   }, [isGravityCrushed]);
 
-  // Gravity Crush Trigger Logic
-  const handleMouseDown = () => {
-    if (isGravityCrushed) return;
-    
-    let start = Date.now();
-    holdTimerRef.current = window.setInterval(() => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / 3000, 1);
-      setHoldProgress(progress);
-      
-      if (progress >= 1) {
-        clearInterval(holdTimerRef.current!);
-        setIsGravityCrushed(true);
-        setHoldProgress(0);
-      }
-    }, 50);
+  // Handle Restoration
+  const restoreReality = () => {
+    setIsGravityCrushed(false);
+    setHoldProgress(0);
+    // Force a small delay then refresh scroll triggers
+    setTimeout(() => {
+      ScrollTrigger.refresh();
+      window.scrollTo(0, 0);
+    }, 100);
   };
 
-  const handleMouseUp = () => {
-    if (holdTimerRef.current) {
-      clearInterval(holdTimerRef.current);
-      setHoldProgress(0);
-    }
-  };
+  // Robust Global Gravity Crush Trigger Logic
+  useEffect(() => {
+    const startHold = () => {
+      if (isGravityCrushed || isLoading) return;
+      
+      const startTime = Date.now();
+      const duration = 2500; 
+
+      if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+
+      holdTimerRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        setHoldProgress(progress);
+        
+        if (progress > 0.4) {
+          gsap.to(mainRef.current, {
+            x: (Math.random() - 0.5) * (progress * 20),
+            y: (Math.random() - 0.5) * (progress * 20),
+            duration: 0.05,
+          });
+        }
+
+        if (progress >= 1) {
+          clearInterval(holdTimerRef.current!);
+          holdTimerRef.current = null;
+          setShowFlash(true);
+          setIsGravityCrushed(true);
+          setHoldProgress(0);
+          gsap.to(mainRef.current, { x: 0, y: 0, duration: 0.1 });
+          setTimeout(() => setShowFlash(false), 500);
+        }
+      }, 16);
+    };
+
+    const endHold = () => {
+      if (holdTimerRef.current) {
+        clearInterval(holdTimerRef.current);
+        holdTimerRef.current = null;
+        setHoldProgress(0);
+        gsap.to(mainRef.current, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.3)" });
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isGravityCrushed) {
+        restoreReality();
+      }
+    };
+
+    window.addEventListener('mousedown', startHold);
+    window.addEventListener('mouseup', endHold);
+    window.addEventListener('touchstart', startHold);
+    window.addEventListener('touchend', endHold);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('mousedown', startHold);
+      window.removeEventListener('mouseup', endHold);
+      window.removeEventListener('touchstart', startHold);
+      window.removeEventListener('touchend', endHold);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isGravityCrushed, isLoading]);
 
   return (
-    <div 
-      className="relative text-white min-h-screen transition-colors duration-1000 selection:bg-blue-500"
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      <Cursor />
-      <AmbientBackground />
+    <div className="relative text-white min-h-screen transition-colors duration-1000 selection:bg-blue-500">
+      <Cursor holdProgress={holdProgress} />
+      <AmbientBackground isCharging={holdProgress > 0} />
       
-      {/* Physics Simulation Overlay */}
-      <PhysicsSandbox isActive={isGravityCrushed} onReset={() => setIsGravityCrushed(false)} />
+      {/* Reality Collapse Flash */}
+      <AnimatePresence>
+        {showFlash && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white z-[20000] pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Gravity Well Feedback */}
+      {/* Physics Simulation Overlay */}
+      <PhysicsSandbox isActive={isGravityCrushed} onReset={restoreReality} />
+
       <AnimatePresence>
         {holdProgress > 0 && !isGravityCrushed && (
           <motion.div 
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: holdProgress * 5, opacity: holdProgress * 0.5 }}
-            exit={{ scale: 10, opacity: 0 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-blue-500 blur-[80px] z-[50] pointer-events-none"
+            animate={{ scale: holdProgress * 15, opacity: holdProgress * 0.4 }}
+            exit={{ scale: 20, opacity: 0 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-white blur-[120px] z-[50] pointer-events-none mix-blend-overlay"
           />
         )}
       </AnimatePresence>
