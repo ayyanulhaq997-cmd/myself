@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollTrigger } from 'gsap-scrolltrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,36 +12,40 @@ const Hero: React.FC = () => {
   const title2Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const chars1 = title1Ref.current?.querySelectorAll('.char');
-    const chars2 = title2Ref.current?.querySelectorAll('.char');
+    const ctx = gsap.context(() => {
+      const chars1 = title1Ref.current?.querySelectorAll('.char');
+      const chars2 = title2Ref.current?.querySelectorAll('.char');
 
-    if (chars1 && chars2) {
-      gsap.to(chars1, {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1,
-        },
-        y: (i) => -100 - (i * 20),
-        rotate: (i) => i % 2 === 0 ? 15 : -15,
-        opacity: 0,
-        stagger: 0.02,
-      });
+      if (chars1 && chars2) {
+        gsap.to(chars1, {
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: 1,
+          },
+          y: (i) => -100 - (i * 20),
+          rotate: (i) => i % 2 === 0 ? 15 : -15,
+          opacity: 0,
+          stagger: 0.02,
+        });
 
-      gsap.to(chars2, {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1.5,
-        },
-        y: (i) => 100 + (i * 20),
-        rotate: (i) => i % 2 === 0 ? -10 : 10,
-        opacity: 0,
-        stagger: 0.02,
-      });
-    }
+        gsap.to(chars2, {
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: 1.5,
+          },
+          y: (i) => 100 + (i * 20),
+          rotate: (i) => i % 2 === 0 ? -10 : 10,
+          opacity: 0,
+          stagger: 0.02,
+        });
+      }
+    }, containerRef);
+
+    return () => ctx.revert();
   }, []);
 
   const splitText = (text: string) => {

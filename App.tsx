@@ -3,7 +3,7 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollTrigger } from 'gsap-scrolltrigger';
 import ParticlesBackground from './components/ParticlesBackground';
 import Hero from './components/Hero';
 import WorkCarousel from './components/WorkCarousel';
@@ -22,25 +22,37 @@ const App: React.FC = () => {
   useLayoutEffect(() => {
     // Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
-      lerp: 0.1, // Smoothness intensity
       duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
       smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+      infinite: false,
     });
 
-    // Sync ScrollTrigger with Lenis
+    // Update ScrollTrigger on Lenis scroll
     lenis.on('scroll', ScrollTrigger.update);
 
+    // Add Lenis to GSAP ticker
     gsap.ticker.add((time) => {
       lenis.raf(time * 1000);
     });
 
+    // Disable GSAP ticker lag smoothing for better sync
     gsap.ticker.lagSmoothing(0);
+
+    // Set initial scroll position to top
+    window.scrollTo(0, 0);
 
     // Initial preloader
     const timer = setTimeout(() => {
       setIsLoading(false);
-      // Refresh scroll triggers once content is visible
-      ScrollTrigger.refresh();
+      // Let the exit animation finish slightly before refreshing triggers
+      setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 1200);
     }, 2000);
 
     return () => {
