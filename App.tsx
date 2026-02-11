@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'https://esm.sh/gsap@3.12.5';
 import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
 import Lenis from 'https://esm.sh/lenis@1.1.18';
 
-import ParticlesBackground from './components/ParticlesBackground';
+import AmbientBackground from './components/AmbientBackground';
 import Hero from './components/Hero';
 import WorkCarousel from './components/WorkCarousel';
 import AboutSection from './components/AboutSection';
@@ -14,14 +14,13 @@ import BentoSection from './components/BentoSection';
 import Cursor from './components/Cursor';
 import Magnetic from './components/Magnetic';
 
-// Globally register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    // 1. Initialize Lenis with high-inertia "luxury" settings
     const lenis = new Lenis({
       duration: 1.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -32,32 +31,46 @@ const App: React.FC = () => {
       autoResize: true,
     });
 
-    // 2. Stop scroll initially for the preloader
     lenis.stop();
-
-    // 3. Sync ScrollTrigger with Lenis updates
     lenis.on('scroll', ScrollTrigger.update);
 
-    // 4. Use GSAP Ticker for frame-perfect RAF synchronization
-    // This is much more reliable than raw requestAnimationFrame in React
     const update = (time: number) => {
       lenis.raf(time * 1000);
     };
     gsap.ticker.add(update);
     gsap.ticker.lagSmoothing(0);
-
-    // 5. Scroll Normalization (helps mobile/trackpad consistency)
     ScrollTrigger.normalizeScroll(true);
 
-    // 6. Preloader Sequence
+    // Background Morphing Sequence
+    const sections = gsap.utils.toArray('section');
+    const colors = ['#050505', '#080812', '#120808', '#08120a', '#050505'];
+
+    // Map colors to scroll progress of sections
+    ScrollTrigger.create({
+      trigger: mainRef.current,
+      start: "top top",
+      end: "bottom bottom",
+      onUpdate: (self) => {
+        const progress = self.progress;
+        const colorIndex = Math.floor(progress * (colors.length - 1));
+        const nextColorIndex = Math.min(colorIndex + 1, colors.length - 1);
+        const lerpFactor = (progress * (colors.length - 1)) % 1;
+        
+        // Use GSAP to smoothly interpolate the background color variable
+        gsap.to(document.body, {
+          backgroundColor: colors[colorIndex],
+          duration: 1,
+          overwrite: 'auto',
+          ease: "power2.out"
+        });
+      }
+    });
+
     const timer = setTimeout(() => {
       setIsLoading(false);
-      
-      // Delay enabling scroll until transition is halfway done
       setTimeout(() => {
         lenis.start();
         ScrollTrigger.refresh();
-        // Force a recalculation of page bounds
         window.dispatchEvent(new Event('resize'));
       }, 1000);
     }, 2500);
@@ -70,9 +83,9 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative text-white min-h-screen bg-[#050505] selection:bg-blue-500">
+    <div className="relative text-white min-h-screen transition-colors duration-1000 selection:bg-blue-500">
       <Cursor />
-      <ParticlesBackground />
+      <AmbientBackground />
       
       <AnimatePresence mode="wait">
         {isLoading && (
@@ -99,14 +112,6 @@ const App: React.FC = () => {
                 className="h-[1px] bg-white w-full mt-4 origin-left opacity-30"
               />
             </div>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="absolute bottom-20 font-syne text-[10px] uppercase tracking-[1.5em] text-white/30"
-            >
-              Building the Future
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -136,15 +141,14 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main content wrapper */}
-      <main id="main-content" className="relative z-10 w-full">
+      <main ref={mainRef} id="main-content" className="relative z-10 w-full">
         <Hero />
         <AboutSection />
         <WorkCarousel />
         <SkillsCloud />
         <BentoSection />
         
-        <footer className="py-40 px-10 md:px-24 border-t border-white/5 bg-black flex flex-col gap-20">
+        <footer className="py-40 px-10 md:px-24 border-t border-white/5 flex flex-col gap-20">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12">
             <h2 className="text-[14vw] font-syne font-black tracking-tighter leading-[0.8] text-white/10 uppercase">World<br/>Class.</h2>
             <div className="flex flex-col gap-8 md:items-end">

@@ -6,10 +6,10 @@ const Cursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverType, setHoverType] = useState<string | null>(null);
 
-  const mouseX = useSpring(0, { stiffness: 500, damping: 40, mass: 0.2 });
-  const mouseY = useSpring(0, { stiffness: 500, damping: 40, mass: 0.2 });
+  const mouseX = useSpring(0, { stiffness: 600, damping: 45, mass: 0.15 });
+  const mouseY = useSpring(0, { stiffness: 600, damping: 45, mass: 0.15 });
   
-  const cursorSize = useSpring(12, { stiffness: 300, damping: 30 });
+  const cursorSize = useSpring(12, { stiffness: 350, damping: 35 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -25,11 +25,11 @@ const Cursor: React.FC = () => {
       if (isInteractive) {
         setIsHovering(true);
         setHoverType('link');
-        cursorSize.set(100);
+        cursorSize.set(90);
       } else if (isProject) {
         setIsHovering(true);
         setHoverType('project');
-        cursorSize.set(120);
+        cursorSize.set(130);
       } else {
         setIsHovering(false);
         setHoverType(null);
@@ -60,27 +60,34 @@ const Cursor: React.FC = () => {
       <motion.div
         className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden"
       >
-        {hoverType === 'project' && (
-          <motion.span 
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-[9px] font-black uppercase tracking-[0.3em] text-black"
-          >
-            Observe
-          </motion.span>
-        )}
+        <AnimatePresence mode="wait">
+          {hoverType === 'project' && (
+            <motion.span 
+              key="view"
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -10 }}
+              className="text-[10px] font-black uppercase tracking-[0.4em] text-black"
+            >
+              VIEW
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.div>
       
-      {/* Aura ring for ambient glow */}
+      {/* Outer Glow Ring */}
       <motion.div 
-        className="absolute inset-[-20px] border border-white/10 rounded-full"
+        className="absolute inset-[-12px] border border-white/5 rounded-full"
         animate={{ 
-          scale: isHovering ? 1.2 : 1,
-          opacity: isHovering ? 0.5 : 0.1 
+          scale: isHovering ? 1.1 : 1,
+          opacity: isHovering ? 0.3 : 0.05 
         }}
       />
     </motion.div>
   );
 };
+
+// Internal Import for Cursor
+import { AnimatePresence } from 'framer-motion';
 
 export default Cursor;
