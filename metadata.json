@@ -1,0 +1,7 @@
+{
+  "name": "Aethelgard - Avant-Garde Portfolio",
+  "description": "An immersive, cinematic portfolio experience featuring generative particles, non-linear navigation, and high-end interactive visual design.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
