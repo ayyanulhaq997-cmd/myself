@@ -1,90 +1,160 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import Lenis from 'lenis';
+import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ParticlesBackground from './components/ParticlesBackground';
 import Hero from './components/Hero';
 import WorkCarousel from './components/WorkCarousel';
 import AboutSection from './components/AboutSection';
 import SkillsCloud from './components/SkillsCloud';
 import BentoSection from './components/BentoSection';
-import { motion, AnimatePresence } from 'framer-motion';
+import Cursor from './components/Cursor';
+import Magnetic from './components/Magnetic';
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate high-end asset loading
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
+  useLayoutEffect(() => {
+    // Initialize Lenis Smooth Scroll
+    const lenis = new Lenis({
+      lerp: 0.1, // Smoothness intensity
+      duration: 1.2,
+      smoothWheel: true,
+    });
+
+    // Sync ScrollTrigger with Lenis
+    lenis.on('scroll', ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
+
+    // Initial preloader
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      // Refresh scroll triggers once content is visible
+      ScrollTrigger.refresh();
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      lenis.destroy();
+      gsap.ticker.remove(lenis.raf);
+    };
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative text-white min-h-screen">
+      <Cursor />
+      <ParticlesBackground />
+      
       <AnimatePresence mode="wait">
         {isLoading && (
           <motion.div
             key="loader"
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
-            className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center"
+            initial={{ opacity: 1 }}
+            exit={{ y: "-100%", opacity: 0 }}
+            transition={{ duration: 1, ease: [0.76, 0, 0.24, 1] }}
+            className="fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center overflow-hidden pointer-events-auto"
           >
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: "200px" }}
-              className="h-[1px] bg-white mb-4"
-            />
-            <span className="font-syne text-xs uppercase tracking-[0.5em] text-white">Initializing Experience</span>
+            <div className="relative">
+              <motion.h2 
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8 }}
+                className="font-syne text-[10vw] font-black uppercase tracking-tighter"
+              >
+                Aethelgard
+              </motion.h2>
+              <motion.div 
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 1.5, ease: "circInOut" }}
+                className="h-[2px] bg-blue-500 w-full mt-2 origin-left"
+              />
+            </div>
+            <motion.span 
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="font-syne text-[10px] uppercase tracking-[1em] text-white/40 mt-8"
+            >
+              Initializing
+            </motion.span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <ParticlesBackground />
-
-      <nav className="fixed top-0 left-0 w-full p-8 md:p-12 flex justify-between items-center z-50 mix-blend-difference">
-        <div className="font-syne font-extrabold text-2xl tracking-tighter cursor-pointer group">
-          A<span className="text-gray-500 group-hover:text-white transition-colors">/</span>GARD
-        </div>
-        <div className="flex gap-8 text-xs uppercase font-bold tracking-widest overflow-hidden h-5">
-          {["Work", "About", "Contact"].map((item) => (
-            <motion.div 
-              key={item}
-              whileHover={{ y: -20 }}
-              className="cursor-pointer transition-transform"
-            >
-              <div className="h-5">{item}</div>
-              <div className="h-5 text-blue-500">{item}</div>
-            </motion.div>
+      <nav className="fixed top-0 left-0 w-full p-10 md:p-16 flex justify-between items-center z-[90] mix-blend-difference">
+        <Magnetic strength={0.2}>
+          <div className="font-syne font-black text-3xl tracking-tighter cursor-none group interactive">
+            A<span className="text-blue-500">/</span>G
+          </div>
+        </Magnetic>
+        
+        <div className="flex gap-12 text-[10px] uppercase font-bold tracking-[0.4em]">
+          {["Work", "About", "Studio"].map((item) => (
+            <Magnetic key={item} strength={0.3}>
+              <motion.div 
+                whileHover={{ y: -5 }}
+                className="cursor-none transition-transform interactive group"
+              >
+                <div className="relative overflow-hidden h-4">
+                  <div className="group-hover:-translate-y-full transition-transform duration-500 ease-[0.76, 0, 0.24, 1]">
+                    {item}
+                  </div>
+                  <div className="absolute top-0 left-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[0.76, 0, 0.24, 1] text-blue-400">
+                    {item}
+                  </div>
+                </div>
+              </motion.div>
+            </Magnetic>
           ))}
         </div>
       </nav>
 
-      <main>
+      <main id="main-content" className="relative z-10 w-full">
         <Hero />
         <AboutSection />
         <WorkCarousel />
         <SkillsCloud />
         <BentoSection />
         
-        <footer className="py-20 px-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-gray-500 text-xs uppercase tracking-widest">
-          <div>© 2024 Aethelgard Studio</div>
-          <div className="flex gap-10">
-            <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Cookies</span>
+        <footer className="py-32 px-10 md:px-24 border-t border-white/5 bg-black flex flex-col gap-20">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-12">
+            <h2 className="text-[12vw] font-syne font-black tracking-tighter leading-none text-white/10 uppercase">Let's Create.</h2>
+            <div className="flex flex-col gap-8 md:items-end">
+              <Magnetic strength={0.4}>
+                <button className="bg-white text-black px-12 py-6 rounded-full font-bold uppercase tracking-widest text-xs interactive transition-transform hover:scale-110 active:scale-95">
+                  Start a Project
+                </button>
+              </Magnetic>
+              <div className="text-gray-500 space-y-2 uppercase text-[10px] tracking-widest text-right">
+                <p>Tokyo, Japan</p>
+                <p>contact@aethelgard.io</p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            Built with <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Tokyo
+          
+          <div className="flex flex-col md:flex-row justify-between items-center pt-20 border-t border-white/10 text-gray-600 text-[10px] uppercase tracking-[0.5em]">
+            <div>© 2025 Aethelgard Studio</div>
+            <div className="flex gap-12 mt-6 md:mt-0">
+              <span className="hover:text-white cursor-none interactive">Twitter</span>
+              <span className="hover:text-white cursor-none interactive">LinkedIn</span>
+              <span className="hover:text-white cursor-none interactive">Behance</span>
+            </div>
           </div>
         </footer>
       </main>
 
-      {/* Aesthetic UI Elements */}
-      <div className="fixed bottom-10 left-10 z-40 hidden md:block pointer-events-none">
-        <div className="flex flex-col gap-4">
-          <div className="w-[1px] h-20 bg-white/10 mx-auto" />
-          <div className="rotate-90 origin-left text-[8px] uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">
-            Avant-Garde Digital Artform
-          </div>
-        </div>
-      </div>
+      {/* Aesthetic Border Elements */}
+      <div className="fixed inset-0 border-[20px] border-black z-[85] pointer-events-none hidden md:block" />
     </div>
   );
 };
