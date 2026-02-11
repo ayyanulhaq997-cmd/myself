@@ -1,8 +1,8 @@
 
 import React, { useRef, useEffect } from 'react';
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap_st';
+import gsap from 'https://esm.sh/gsap@3.12.5';
+import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,7 +40,6 @@ const AboutSection: React.FC = () => {
   });
 
   useEffect(() => {
-    // Background Morph
     const ctx = gsap.context(() => {
       gsap.to(bgRef.current, {
         scrollTrigger: {
@@ -49,12 +48,11 @@ const AboutSection: React.FC = () => {
           end: "bottom center",
           scrub: true,
         },
-        backgroundColor: "#1e133d", // Deep violet accent
+        backgroundColor: "#1e133d",
         overwrite: 'auto'
       });
     }, containerRef);
     
-    // Refresh triggers to ensure they detect height correctly
     ScrollTrigger.refresh();
 
     return () => ctx.revert();

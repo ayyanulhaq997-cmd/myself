@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap_st';
+// Direct URL imports to bypass Vite/Rollup resolution issues
+import gsap from 'https://esm.sh/gsap@3.12.5';
+import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
+import Lenis from 'https://esm.sh/lenis@1.1.18';
+
 import ParticlesBackground from './components/ParticlesBackground';
 import Hero from './components/Hero';
 import WorkCarousel from './components/WorkCarousel';
@@ -22,40 +24,36 @@ const App: React.FC = () => {
   useLayoutEffect(() => {
     // Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
-      duration: 1.5,
+      duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       wheelMultiplier: 1.1,
     });
 
-    // Update ScrollTrigger on Lenis scroll
+    // Sync ScrollTrigger with Lenis
     lenis.on('scroll', ScrollTrigger.update);
 
-    // Add Lenis to GSAP ticker
-    const gsapTickerFunc = (time: number) => {
+    // Optimized Raf Loop
+    const rafLoop = (time: number) => {
       lenis.raf(time * 1000);
     };
-    gsap.ticker.add(gsapTickerFunc);
+    gsap.ticker.add(rafLoop);
 
-    // Disable GSAP ticker lag smoothing for better sync
     gsap.ticker.lagSmoothing(0);
 
-    // Reset scroll memory and position
-    ScrollTrigger.clearScrollMemory();
-    window.scrollTo(0, 0);
-
+    // Initial preloader logic
     const timer = setTimeout(() => {
       setIsLoading(false);
-      // Wait for exit animation, then refresh all triggers
+      // Ensure page is scrollable and triggers are calculated
       setTimeout(() => {
         ScrollTrigger.refresh();
-      }, 1000);
+      }, 500);
     }, 2000);
 
     return () => {
       clearTimeout(timer);
       lenis.destroy();
-      gsap.ticker.remove(gsapTickerFunc);
+      gsap.ticker.remove(rafLoop);
     };
   }, []);
 
@@ -94,7 +92,7 @@ const App: React.FC = () => {
               transition={{ repeat: Infinity, duration: 2 }}
               className="font-syne text-[10px] uppercase tracking-[1em] text-white/40 mt-8"
             >
-              Initializing Experience
+              Building Reality
             </motion.span>
           </motion.div>
         )}

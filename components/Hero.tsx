@@ -1,8 +1,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap_st';
+import gsap from 'https://esm.sh/gsap@3.12.5';
+import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -24,8 +24,8 @@ const Hero: React.FC = () => {
             end: "bottom top",
             scrub: 1,
           },
-          y: (i) => -100 - (i * 20),
-          rotate: (i) => i % 2 === 0 ? 15 : -15,
+          y: (i: number) => -100 - (i * 20),
+          rotate: (i: number) => i % 2 === 0 ? 15 : -15,
           opacity: 0,
           stagger: 0.02,
         });
@@ -37,8 +37,8 @@ const Hero: React.FC = () => {
             end: "bottom top",
             scrub: 1.5,
           },
-          y: (i) => 100 + (i * 20),
-          rotate: (i) => i % 2 === 0 ? -10 : 10,
+          y: (i: number) => 100 + (i * 20),
+          rotate: (i: number) => i % 2 === 0 ? -10 : 10,
           opacity: 0,
           stagger: 0.02,
         });
