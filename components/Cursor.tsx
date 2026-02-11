@@ -6,11 +6,10 @@ const Cursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverType, setHoverType] = useState<string | null>(null);
 
-  // Different physics for a "lagging" organic follower effect
-  const mouseX = useSpring(0, { stiffness: 400, damping: 35, mass: 0.5 });
-  const mouseY = useSpring(0, { stiffness: 400, damping: 35, mass: 0.5 });
+  const mouseX = useSpring(0, { stiffness: 500, damping: 40, mass: 0.2 });
+  const mouseY = useSpring(0, { stiffness: 500, damping: 40, mass: 0.2 });
   
-  const cursorSize = useSpring(16, { stiffness: 300, damping: 20 });
+  const cursorSize = useSpring(12, { stiffness: 300, damping: 30 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -26,15 +25,15 @@ const Cursor: React.FC = () => {
       if (isInteractive) {
         setIsHovering(true);
         setHoverType('link');
-        cursorSize.set(80);
+        cursorSize.set(100);
       } else if (isProject) {
         setIsHovering(true);
         setHoverType('project');
-        cursorSize.set(100);
+        cursorSize.set(120);
       } else {
         setIsHovering(false);
         setHoverType(null);
-        cursorSize.set(16);
+        cursorSize.set(12);
       }
     };
 
@@ -60,29 +59,26 @@ const Cursor: React.FC = () => {
     >
       <motion.div
         className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden"
-        animate={{
-          borderRadius: hoverType === 'project' ? '12px' : '9999px'
-        }}
       >
         {hoverType === 'project' && (
           <motion.span 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-[8px] font-black uppercase tracking-[0.4em] text-black"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-[9px] font-black uppercase tracking-[0.3em] text-black"
           >
-            View
+            Observe
           </motion.span>
         )}
       </motion.div>
       
-      {/* Trailing secondary ring for depth */}
-      {!isHovering && (
-        <motion.div 
-          className="absolute w-full h-full border border-white/20 rounded-full"
-          animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-        />
-      )}
+      {/* Aura ring for ambient glow */}
+      <motion.div 
+        className="absolute inset-[-20px] border border-white/10 rounded-full"
+        animate={{ 
+          scale: isHovering ? 1.2 : 1,
+          opacity: isHovering ? 0.5 : 0.1 
+        }}
+      />
     </motion.div>
   );
 };
