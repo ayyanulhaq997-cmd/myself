@@ -13,13 +13,18 @@ import SkillsCloud from './components/SkillsCloud';
 import BentoSection from './components/BentoSection';
 import Cursor from './components/Cursor';
 import Magnetic from './components/Magnetic';
+import PhysicsSandbox from './components/PhysicsSandbox';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isGravityCrushed, setIsGravityCrushed] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+  
   const mainRef = useRef<HTMLDivElement>(null);
+  const holdTimerRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     const lenis = new Lenis({
@@ -42,7 +47,6 @@ const App: React.FC = () => {
     gsap.ticker.lagSmoothing(0);
     ScrollTrigger.normalizeScroll(true);
 
-    // Background Morphing Sequence
     const colors = ['#050505', '#080812', '#120808', '#08120a', '#050505'];
 
     ScrollTrigger.create({
@@ -50,6 +54,7 @@ const App: React.FC = () => {
       start: "top top",
       end: "bottom bottom",
       onUpdate: (self) => {
+        if (isGravityCrushed) return;
         const progress = self.progress;
         const colorIndex = Math.floor(progress * (colors.length - 1));
         gsap.to(document.body, {
@@ -70,33 +75,63 @@ const App: React.FC = () => {
       }, 1000);
     }, 2500);
 
-    // Listen for custom "navigation" events to trigger the exit wipe
-    const handleTransition = () => {
-      setIsNavigating(true);
-      setTimeout(() => setIsNavigating(false), 2000);
-    };
-
-    window.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.interactive')) {
-        // Trigger a fake "navigation" wipe for aesthetic effect
-        handleTransition();
-      }
-    });
-
     return () => {
       clearTimeout(timer);
       lenis.destroy();
       gsap.ticker.remove(update);
     };
-  }, []);
+  }, [isGravityCrushed]);
+
+  // Gravity Crush Trigger Logic
+  const handleMouseDown = () => {
+    if (isGravityCrushed) return;
+    
+    let start = Date.now();
+    holdTimerRef.current = window.setInterval(() => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / 3000, 1);
+      setHoldProgress(progress);
+      
+      if (progress >= 1) {
+        clearInterval(holdTimerRef.current!);
+        setIsGravityCrushed(true);
+        setHoldProgress(0);
+      }
+    }, 50);
+  };
+
+  const handleMouseUp = () => {
+    if (holdTimerRef.current) {
+      clearInterval(holdTimerRef.current);
+      setHoldProgress(0);
+    }
+  };
 
   return (
-    <div className="relative text-white min-h-screen transition-colors duration-1000 selection:bg-blue-500">
+    <div 
+      className="relative text-white min-h-screen transition-colors duration-1000 selection:bg-blue-500"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
       <Cursor />
       <AmbientBackground />
       
-      {/* Page Exit Transition Overlay */}
+      {/* Physics Simulation Overlay */}
+      <PhysicsSandbox isActive={isGravityCrushed} onReset={() => setIsGravityCrushed(false)} />
+
+      {/* Gravity Well Feedback */}
+      <AnimatePresence>
+        {holdProgress > 0 && !isGravityCrushed && (
+          <motion.div 
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: holdProgress * 5, opacity: holdProgress * 0.5 }}
+            exit={{ scale: 10, opacity: 0 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-blue-500 blur-[80px] z-[50] pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isNavigating && (
           <motion.div 
@@ -147,7 +182,7 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <nav className="fixed top-0 left-0 w-full p-10 md:p-14 flex justify-between items-start z-[90] mix-blend-difference pointer-events-none">
+      <nav className={`fixed top-0 left-0 w-full p-10 md:p-14 flex justify-between items-start z-[90] mix-blend-difference pointer-events-none transition-opacity duration-500 ${isGravityCrushed ? 'opacity-0' : 'opacity-100'}`}>
         <Magnetic strength={0.3}>
           <div className="font-syne font-black text-4xl tracking-tighter cursor-none group interactive pointer-events-auto">
             A<span className="text-blue-500">.</span>G
@@ -172,7 +207,7 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      <main ref={mainRef} id="main-content" className="relative z-10 w-full">
+      <main ref={mainRef} id="main-content" className={`relative z-10 w-full ${isGravityCrushed ? 'pointer-events-none' : ''}`}>
         <Hero />
         <AboutSection />
         <WorkCarousel />
@@ -201,7 +236,7 @@ const App: React.FC = () => {
         </footer>
       </main>
 
-      <div className="fixed inset-0 border-[1px] border-white/5 z-[85] pointer-events-none" />
+      <div className={`fixed inset-0 border-[1px] border-white/5 z-[85] pointer-events-none transition-opacity duration-500 ${isGravityCrushed ? 'opacity-0' : 'opacity-100'}`} />
     </div>
   );
 };
