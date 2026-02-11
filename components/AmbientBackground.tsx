@@ -15,8 +15,8 @@ const AmbientBackground: React.FC = () => {
     let animationFrameId: number;
     let time = 0;
     
-    const mouse = { x: 0.5, y: 0.5 };
-    const targetMouse = { x: 0.5, y: 0.5 };
+    const inputPos = { x: 0.5, y: 0.5 };
+    const targetPos = { x: 0.5, y: 0.5 };
 
     const resize = () => {
       width = window.innerWidth;
@@ -28,13 +28,12 @@ const AmbientBackground: React.FC = () => {
     const draw = () => {
       time += 0.005;
       
-      // Smoothly interpolate mouse position
-      mouse.x += (targetMouse.x - mouse.x) * 0.05;
-      mouse.y += (targetMouse.y - mouse.y) * 0.05;
+      // Smoothly interpolate position
+      inputPos.x += (targetPos.x - inputPos.x) * 0.05;
+      inputPos.y += (targetPos.y - inputPos.y) * 0.05;
 
       ctx.clearRect(0, 0, width, height);
 
-      // Create a complex gradient mesh using multiple overlapping radial gradients
       const drawBlob = (x: number, y: number, radius: number, color1: string, color2: string) => {
         const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
         grad.addColorStop(0, color1);
@@ -47,8 +46,8 @@ const AmbientBackground: React.FC = () => {
 
       // Aurora 1 - Deep Blue
       drawBlob(
-        width * (0.5 + Math.sin(time) * 0.2 + (mouse.x - 0.5) * 0.1),
-        height * (0.5 + Math.cos(time * 0.8) * 0.2 + (mouse.y - 0.5) * 0.1),
+        width * (0.5 + Math.sin(time) * 0.2 + (inputPos.x - 0.5) * 0.1),
+        height * (0.5 + Math.cos(time * 0.8) * 0.2 + (inputPos.y - 0.5) * 0.1),
         width * 0.8,
         'rgba(20, 30, 100, 0.15)',
         'rgba(0, 0, 0, 0)'
@@ -63,10 +62,10 @@ const AmbientBackground: React.FC = () => {
         'rgba(0, 0, 0, 0)'
       );
 
-      // Aurora 3 - Cyan highlight near mouse
+      // Aurora 3 - Cyan highlight near input
       drawBlob(
-        width * mouse.x,
-        height * mouse.y,
+        width * inputPos.x,
+        height * inputPos.y,
         width * 0.4,
         'rgba(59, 130, 246, 0.08)',
         'rgba(0, 0, 0, 0)'
@@ -77,18 +76,29 @@ const AmbientBackground: React.FC = () => {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      targetMouse.x = e.clientX / window.innerWidth;
-      targetMouse.y = e.clientY / window.innerHeight;
+      targetPos.x = e.clientX / window.innerWidth;
+      targetPos.y = e.clientY / window.innerHeight;
+    };
+
+    const handleDeviceMotion = (e: DeviceOrientationEvent) => {
+      if (e.beta !== null && e.gamma !== null) {
+        // gamma is left to right tilt in degrees [-90, 90]
+        // beta is front to back tilt in degrees [-180, 180]
+        targetPos.x = (e.gamma + 90) / 180;
+        targetPos.y = (e.beta + 180) / 360;
+      }
     };
 
     window.addEventListener('resize', resize);
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('deviceorientation', handleDeviceMotion);
     resize();
     draw();
 
     return () => {
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('deviceorientation', handleDeviceMotion);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);

@@ -11,21 +11,36 @@ const Hero: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   
-  // Mouse position for the reactive typography
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  // Mouse position or Device Orientation
+  const xValue = useMotionValue(0);
+  const yValue = useMotionValue(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e;
       const { innerWidth, innerHeight } = window;
-      mouseX.set(clientX / innerWidth - 0.5);
-      mouseY.set(clientY / innerHeight - 0.5);
+      xValue.set(clientX / innerWidth - 0.5);
+      yValue.set(clientY / innerHeight - 0.5);
+    };
+
+    const handleDeviceMotion = (e: DeviceOrientationEvent) => {
+      if (e.beta !== null && e.gamma !== null) {
+        // Map tilt to -0.5 to 0.5 range
+        const x = (e.gamma / 45); // Roughly 45 deg tilt
+        const y = (e.beta / 45) - 1; // Adjust beta to center around horizontal holding
+        xValue.set(Math.max(-0.5, Math.min(0.5, x)));
+        yValue.set(Math.max(-0.5, Math.min(0.5, y)));
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
+    window.addEventListener('deviceorientation', handleDeviceMotion);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('deviceorientation', handleDeviceMotion);
+    };
+  }, [xValue, yValue]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -42,17 +57,6 @@ const Hero: React.FC = () => {
         stagger: 0.02,
         ease: "power2.inOut"
       });
-
-      gsap.to(".floating-cta", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: true,
-        },
-        y: 200,
-        opacity: 0,
-      });
     }, containerRef);
 
     return () => ctx.revert();
@@ -62,7 +66,6 @@ const Hero: React.FC = () => {
   
   return (
     <section ref={containerRef} className="relative h-screen flex flex-col items-center justify-center overflow-hidden z-10 select-none bg-black">
-      {/* Dynamic Background Gradient */}
       <div className="absolute inset-0 opacity-30 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-blue-900/30 blur-[120px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-indigo-900/20 blur-[120px] rounded-full" />
@@ -78,8 +81,9 @@ const Hero: React.FC = () => {
               key={i}
               className="hero-letter inline-block will-change-transform"
               style={{
-                x: useTransform(mouseX, [-0.5, 0.5], [i * -10, i * 10]),
-                scale: useTransform(mouseY, [-0.5, 0.5], [1, 1.05]),
+                x: useTransform(xValue, [-0.5, 0.5], [i * -12, i * 12]),
+                scale: useTransform(yValue, [-0.5, 0.5], [1, 1.08]),
+                rotateY: useTransform(xValue, [-0.5, 0.5], ["-10deg", "10deg"]),
               }}
             >
               {char}
@@ -99,13 +103,12 @@ const Hero: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Magnetic CTA - Follows the Cursor roughly */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
         <motion.div 
           className="floating-cta pointer-events-auto"
           style={{
-            x: useSpring(useTransform(mouseX, [-0.5, 0.5], [-200, 200]), { stiffness: 50, damping: 20 }),
-            y: useSpring(useTransform(mouseY, [-0.5, 0.5], [-100, 100]), { stiffness: 50, damping: 20 }),
+            x: useSpring(useTransform(xValue, [-0.5, 0.5], [-200, 200]), { stiffness: 50, damping: 20 }),
+            y: useSpring(useTransform(yValue, [-0.5, 0.5], [-100, 100]), { stiffness: 50, damping: 20 }),
           }}
         >
           <Magnetic strength={0.4}>

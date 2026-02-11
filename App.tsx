@@ -1,5 +1,5 @@
 
-import React, { useState, useLayoutEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'https://esm.sh/gsap@3.12.5';
 import { ScrollTrigger } from 'https://esm.sh/gsap@3.12.5/ScrollTrigger';
@@ -18,6 +18,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -42,10 +43,8 @@ const App: React.FC = () => {
     ScrollTrigger.normalizeScroll(true);
 
     // Background Morphing Sequence
-    const sections = gsap.utils.toArray('section');
     const colors = ['#050505', '#080812', '#120808', '#08120a', '#050505'];
 
-    // Map colors to scroll progress of sections
     ScrollTrigger.create({
       trigger: mainRef.current,
       start: "top top",
@@ -53,13 +52,9 @@ const App: React.FC = () => {
       onUpdate: (self) => {
         const progress = self.progress;
         const colorIndex = Math.floor(progress * (colors.length - 1));
-        const nextColorIndex = Math.min(colorIndex + 1, colors.length - 1);
-        const lerpFactor = (progress * (colors.length - 1)) % 1;
-        
-        // Use GSAP to smoothly interpolate the background color variable
         gsap.to(document.body, {
           backgroundColor: colors[colorIndex],
-          duration: 1,
+          duration: 1.2,
           overwrite: 'auto',
           ease: "power2.out"
         });
@@ -75,6 +70,20 @@ const App: React.FC = () => {
       }, 1000);
     }, 2500);
 
+    // Listen for custom "navigation" events to trigger the exit wipe
+    const handleTransition = () => {
+      setIsNavigating(true);
+      setTimeout(() => setIsNavigating(false), 2000);
+    };
+
+    window.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.interactive')) {
+        // Trigger a fake "navigation" wipe for aesthetic effect
+        handleTransition();
+      }
+    });
+
     return () => {
       clearTimeout(timer);
       lenis.destroy();
@@ -87,6 +96,28 @@ const App: React.FC = () => {
       <Cursor />
       <AmbientBackground />
       
+      {/* Page Exit Transition Overlay */}
+      <AnimatePresence>
+        {isNavigating && (
+          <motion.div 
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            exit={{ scaleY: 0 }}
+            transition={{ duration: 0.8, ease: [0.85, 0, 0.15, 1] }}
+            className="fixed inset-0 bg-blue-600 z-[9999] origin-top"
+          >
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="absolute inset-0 flex items-center justify-center font-syne font-black text-[10vw] uppercase tracking-tighter"
+            >
+              Loading...
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence mode="wait">
         {isLoading && (
           <motion.div
